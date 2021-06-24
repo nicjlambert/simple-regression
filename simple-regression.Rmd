@@ -1,0 +1,384 @@
+---
+title: "Regression"
+author: "Nicholas Lambert"
+date: "6/22/2021"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, options(scipen = 100))
+
+#install.packages(c('tidyverse', 'lmtest', 'car', 'caret'))
+
+library(tidyverse) # for analysis workflow
+library(tidymodels)
+library(lmtest) #  collection of tests for diagnostic checking in linear regression models
+library(car) # companion to Applied Regression
+library(caret)
+```
+
+# Simple regression
+
+Regression analysis is a supervised machine learning approach
+
+Special case of the general linear model
+
+$$
+\begin{aligned}
+outcome_i &= (model) + error_i
+\end{aligned}
+$$
+
+Predict (estimate) value of one outcome (dependent or target) variable as:
+
+* one predictor or feature (independent) variable: simple / univariate
+
+$$
+\begin{aligned}
+Y_i &= (b_0+b_1∗X_{i1})+ϵ_i
+\end{aligned}
+$$
+
+* more predictors or features (independent) variables: multiple / multivar.
+
+$$
+\begin{aligned}
+Y_i &= (b_0+b_1∗X_{i1}+b_2∗X_{i2}+⋯+b_M∗X_{iM})+ϵ_i
+\end{aligned}
+$$
+
+## Example
+
+Can we predict a a car’s miles per gallon (mpg) from horsepower?
+
+body massi=(b0+b1∗flipper lengthi)+ϵi
+
+$$
+\begin{aligned}
+mpg_i &= (b_0+b_1∗horsepower)+ϵ_i
+\end{aligned}
+$$
+```{r}
+
+reg <- lm(mpg~hp, data=mtcars)
+
+plot(mpg~hp, data=mtcars)
+abline(reg)
+```
+
+## Least squares
+
+Least squares is the most commonly used approach to generate a regression model
+
+The model fits a line:
+
+* to minimise the squared values of the residuals (errors)
+* that is squared difference between
+* observed values
+
+$$
+\begin{aligned}
+residual_i=observed_i−model_i \\\\
+deviation=∑_i(observed_i−model_i)^2
+\end{aligned}
+$$
+
+## Assumptions
+
+* **Linearity**
+  * the relationship is actually linear
+
+* **Normality of residuals**
+  * standard residuals are normally distributed with mean 0
+
+* **Homoscedasticity of residuals**
+  * at each level of the predictor variable(s) the variance of the standard residuals should be the same (homo-scedasticity) rather than different (hetero-scedasticity)
+
+* **Independence of residuals**
+  * adjacent standard residuals are not correlated
+  
+* **When more than one predictor: no multicollinearity**
+  * if two or more predictor variables are used in the model, each pair of variables not correlated
+  
+```{r}
+
+summary(reg)
+```
+
+## Overall fit
+
+The output indicates:
+
+* p-value:  0.0000001788: p <.01 the model is significant
+  * derived by comparing F-statistic (45.46) to F distribution having specified degrees of freedom (1, 30)
+  * Report as: F(1, 30) = 45.46
+
+* Adjusted R-squared: 0.5892:
+  * hoursepower can account for 58.92% variation in miles per gallon
+
+* Coefficients
+  * Intercept estimate 30.09886 is significant
+  * horsepower (slope) estimate -0.06823 is significant
+  
+## Outliers and influential cases
+
+```{r}
+
+mtcars_output <-
+  mtcars %>%
+  dplyr::filter(!is.na(mpg) | !is.na(hp)) %>%
+  mutate(
+    model_stdres = reg %>% stats::rstandard(), # provides leave-one-out cross validation residuals
+    model_cook_dist = reg %>% stats::cooks.distance() # provides estimate of the influence of a data point when performing a least-squares regression analysis
+  )
+
+mtcars_output %>%
+  dplyr::select(mpg, model_stdres, model_cook_dist) %>%
+  dplyr::filter(abs(model_stdres) > 2.58 | model_cook_dist > 1)
+
+```
+
+One influential case (Cook’s distance > 1) an no outliers (0 abs std res > 2.58)
+
+## Checking assumptions: normality
+
+Shapiro-Wilk test for normality of standard residuals, robust models: should be not significant
+
+```{r}
+
+  stats::shapiro.test(
+    mtcars_output$model_stdres
+  )
+
+```
+
+Standard residuals are **not** normally distributed.
+
+## Checking assumptions: homoscedasticity
+
+Breusch-Pagan test for homoscedasticity of standard residuals, robust models: should be not significant
+
+```{r}
+
+reg %>% 
+lmtest::bptest() # performs the Breusch-Pagan test against heteroskedasticity
+
+```
+Standard residuals are homoscedastic.
+
+## Checking assumptions: independence
+
+Durbin-Watson test for the independence of residuals
+
+* robust models: statistic should be close to 2 (advised between 1 and 3) and not significant
+
+```{r}
+
+reg %>%
+  lmtest::dwtest()
+
+```
+
+Standard residuals are **not** independent!
+
+Note: the result depends on the order of the data.
+
+
+## Checking assumptions: multicollinearity
+Checking the variance inflation factor (VIF)
+
+* robust models should have no multicollinearity: largest VIF should be lower than 10 or the average VIF should not be greater than 1
+
+```{r, eval=FALSE}
+# Note that for this test the model needs to contain more than 1 predictor
+
+reg %>%
+  car::vif() # multicollinearity can assessed by computing a score
+
+```
+
+## Result 
+
+No, we cannot predict mpg from horsepower
+
+* predictors are statistically significant^[test for multicollinearity does not apply in this example (univariate)], but
+* model is not robust, as it doesn’t satisfy most assumptions:
+  * Standard residuals are NOT normally distributed
+  * Standard residuals are NOT independent
+
+$$
+\begin{aligned}
+mpg_i &= (30.09886-0.06823∗horsepower)+ϵ_i
+\end{aligned}
+$$
+
+
+## Summary
+
+Simple Regression:
+
+* Regression
+* Ordinary Least Squares
+* Interpretation
+* Checking assumptions
+
+# Comparing regression model
+
+
+```{r}
+
+reg1 <- lm(mpg~hp+cyl, data=mtcars) 
+
+reg2 <- lm(mpg~log10(hp)+cyl+wt, data=mtcars) 
+
+summary(reg)
+```
+
+Is there a difference between:
+
+Model1’s R2= 0.5721 and Model2’s R2= 0.6688?
+
+## Comparing R-squared
+
+* \(R2\) 
+  * measure of correlation between:
+  * values predicted by the model (fitted values)
+  * observed values for outcome variable
+
+* Adjusted R2
+  * adjusts the R2 depending on
+  * number of cases
+  * number of predictor (independent) variables
+  * “unnecessary” variables lower the value
+
+The model with the highest adjusted R2 has the best fit.
+
+# Model difference with ANOVA
+
+Can be used to test whether adjusted R2 are signif. different if models are 
+hierarchical one uses all variables of the other plus some additional variables.
+
+```{r}
+
+stats::anova(reg1, reg2)
+
+```
+
+Still, neither model is robust.
+
+
+# Information criteria
+
+* Akaike Information Criterion (**AIC**)
+  * measure of model fit
+
+* penalising model with more variables
+  * not interpretable per-se, used to compare similar models
+  * lower value, better fit
+
+* Bayesian Information Criterion (**BIC**)
+  * similar to AIC
+  
+```{r}
+
+stats::AIC(reg1)
+
+stats::AIC(reg2)
+```
+
+# Stepwise selection
+
+Stepwise selection of predictor (independent) variables:
+
+* iteratively adding and/or removing predictors
+* to obtain best performing model
+
+Three approaches
+
+* forward: from no variable, iteratively add variables
+* backward: from all variables, iteratively remove variables
+    * both (a.k.a. step-wise):
+    * from no variable
+    * one step forward, add most promising variable
+    * one step backward, remove any variable not improving
+    
+# MASS::stepAIC
+
+```{r}
+
+  MASS::stepAIC(
+    object = 
+      lm(mpg ~ 1, data=mtcars),
+    scope = 
+      mpg ~ 
+        cyl + disp + hp + drat + wt + 
+        qsec + vs + am + gear + carb,
+    direction = "both",
+    trace = FALSE
+  ) ->
+  reg3
+
+reg3 %>%
+  summary()
+
+stats::AIC(reg3)
+
+```
+
+# Validation
+
+Can the model be generalised?
+
+* split data into:
+    * training set: used to train the model
+    * test set: used to test the model
+
+Approaches:
+
+* Validation
+    * simple split: e.g. 80% traning, 20% test
+
+* Cross-validation
+    * leave-p-out: repeated split, leaving out p cases for test
+    * leave-1-out
+    * k-fold: repeated split, k equal size samples
+
+# caret::train
+
+Use caret::train to cross-validate Model 3
+
+```{r}
+
+train(
+  formula(reg3),
+  data = mtcars,                        
+  trControl = trainControl(
+    method = "cv", # crossvalidate
+    number = 5 # folds
+  ),              
+  method = "lm", # regression model
+  na.action = na.pass
+) ->
+reg3_crossv
+
+```
+
+```{r}
+reg3_crossv
+```
+
+```{r}
+reg3_crossv$resample
+```
+
+# Summary
+
+Comparing regression models:
+
+* Information criteria
+* Model difference
+* Stepwise selection
+Validation

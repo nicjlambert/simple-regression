@@ -1,0 +1,4 @@
+"0",""
+"0","reg <- lm(mpg~cyl+hp, data=mtcars)"
+"0",""
+"0","plot(mpg~hp, data=mtcars)"
