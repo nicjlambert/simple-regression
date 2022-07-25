@@ -4,7 +4,6 @@ date: "01/03/2021"
 output: html_document
 ---
   
-  
 ## Introduction
   
 Becoming familiar with regression is a very important first step in understanding deep learning.  It brings home the concept of a model to predict an outcome and the inherent error in the model.  The aim behind a deep neural network is to create a model to predict an outcome and to make as small an error as possible.
