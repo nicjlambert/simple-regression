@@ -20,33 +20,26 @@ embed(weather_data, 2)[, 2:1] %>%
    count(current, next_day)
 
 # Probability if today is cloudy
-weather_cloudy <- embed(weather_data, 2)[, 2:1] %>% 
+
+weather_type <- function(data, weather) {
+embed(data, 2)[, 2:1] %>% 
    as.data.frame() %>% 
    rename(current = V1, next_day = V2) %>% 
-   filter(current == "cloudy") %>% 
+   filter(current == weather) %>% 
    pull(next_day) %>% 
-   table("Probability of each weather tomorrow if today is cloudy" = .) %>% prop.table()
+   table(paste0("Probability of each weather tomorrow if today is ", cloudy) %>% prop.table()
+}
 
-
-# Probability if today is rainy
-weather_rain <- embed(weather_data, 2)[, 2:1] %>% 
-   as.data.frame() %>% 
-   rename(current = V1, next_day = V2) %>% 
-   filter(current == "rain") %>% 
-   pull(next_day) %>% 
-   table("Probability of each weather tomorrow if today is rain" = .) %>% prop.table()
-
+weather_cloudy <- weather_type(weather_data, "cloudy")
 weather_cloudy
 
 # Probability if today is rainy
-weather_sunny <- embed(weather_data, 2)[, 2:1] %>% 
-   as.data.frame() %>% 
-   rename(current = V1, next_day = V2) %>% 
-   filter(current == "sunny") %>% 
-   pull(next_day) %>% 
-   table("Probability of each weather tomorrow if today is sunny" = .) %>% prop.table()
+weather_rain <- weather_type(weather_data, "rain")
+weather_rain
 
-weather_sunny
+# Probability if today is sunny
+weather_rain <- weather_type(weather_data, "sunny")
+weather_rain
 
 trans_matrix <- rbind(weather_cloudy, weather_rain, weather_sunny) %>% 
    `rownames<-`(c("cloudy", "rain", "sunny"))
@@ -60,3 +53,6 @@ markov_model <- new("markovchain",
                     name = "Weather") # Name of the Markov Chains
 
 markov_model
+set.seed(1)
+plot(markov_model)
+
