@@ -6,7 +6,9 @@ library(markovchain)
 weather <- c("sunny", "sunny", "rain", "cloudy")
 
 set.seed(123)
-weather_data <- sample(weather, 100, replace = T)
+
+# This code generates a simulated dataset of 100 weather conditions using a Markov chain model
+weather_data <- sample(weather, 100, replace = TRUE)
 head(weather_data, 10)
 
 #If today is sunny, what is the probability that tomorrow will be sunny as well? 
