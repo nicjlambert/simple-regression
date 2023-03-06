@@ -1,20 +1,24 @@
 # Markov Chain
 
-library(dplyr)
-library(markovchain)
+# Package Installation and Loading ---------------------------------------------------------
+packages <- c("dplyr", "markovchain")
+install.packages(setdiff(packages, rownames(installed.packages())))
+lapply(packages, require, character.only = TRUE)
 
 weather <- c("sunny", "sunny", "rain", "cloudy")
 
 set.seed(123)
 
-# This code generates a simulated dataset of 100 weather conditions using a Markov chain model
+# This code generates a simulated dataset of 100 weather conditions 
+# using a Markov chain model
 weather_data <- sample(weather, 100, replace = TRUE)
 head(weather_data, 10)
 
-#If today is sunny, what is the probability that tomorrow will be sunny as well? 
-#We simply just need to calculate how many times that today is sunny and the next day is sunny as well from the data.
+# If today is sunny, what is the probability that tomorrow will be sunny as well? 
+# We simply just need to calculate how many times that today is sunny and the next 
+# day is sunny as well from the data.
 
-embed(weather_data, 2)[, 2:1] %>% 
+embed(weather_data, dimension = 2)[, 2:1] %>% 
    as.data.frame() %>% 
    rename(current = V1, next_day = V2) %>% 
    filter(current == "sunny") %>% 
